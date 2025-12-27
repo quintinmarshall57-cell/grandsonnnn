@@ -1,13 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin – GOAT</title>
+  <title>Admin Login – Goat Work of Humanity</title>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; background:#fff; padding:40px; max-width:400px; margin:auto; }
+    input, button { width:100%; padding:12px; margin:8px 0; }
+    button { background:black; color:white; border:none; cursor:pointer; }
+    .hidden { display:none; }
+    .product { border-bottom:1px solid #eee; padding:10px 0; }
+  </style>
 </head>
 <body>
-  <h2>Admin Login</h2>
-  <p>This page must be in the repo root to avoid 404.</p>
-  <p>Use your Firebase email/password.</p>
+
+<h2>Admin Login</h2>
+
+<div id="login">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="panel" class="hidden">
+  <h2>Add Product</h2>
+  <input id="name" placeholder="Product name">
+  <input id="price" placeholder="Price">
+  <input id="file" type="file">
+  <button onclick="addProduct()">Add Product</button>
+
+  <h3>Products</h3>
+  <div id="products"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB8glrOncExN9G6xSx3Mgf_0Ejp1VgKV2c",
+    authDomain: "goat-work-of-humanity.firebaseapp.com",
+    projectId: "goat-work-of-humanity",
+    storageBucket: "goat-work-of-humanity.firebasestorage.app",
+    messagingSenderId: "932731358218",
+    appId: "1:932731358218:web:df2fce295721ae515c23f3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      login.style.display = "none";
+      panel.classList.remove("hidden");
+      loadProducts();
+    }
+  });
+
+  window.login = () =>
+    signInWithEmailAndPassword(auth, email.value, password.value);
+
+  async function loadProducts() {
+    products.innerHTML = "";
+    const snap = await getDocs(collection(db, "products"));
+    snap.forEach(d => {
+      const p = d.data();
+      products.innerHTML += `<div class="product">${p.name} – $${p.price}
+      <button onclick="deleteProduct('${d.id}')">Delete</button></div>`;
+    });
+  }
+
+  window.addProduct = async () => {
+    const fileData = file.files[0];
+    const imgRef = ref(storage, "products/" + Date.now());
+    await uploadBytes(imgRef, fileData);
+    const imageURL = await getDownloadURL(imgRef);
+
+    await addDoc(collection(db, "products"), {
+      name: name.value,
+      price: price.value,
+      image: imageURL
+    });
+
+    loadProducts();
+  };
+
+  window.deleteProduct = async (id) => {
+    await deleteDoc(doc(db, "products", id));
+    loadProducts();
+  };
+</script>
+
 </body>
 </html>
